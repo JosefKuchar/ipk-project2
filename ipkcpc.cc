@@ -1,6 +1,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <csignal>
 #include <cstring>
 #include <iostream>
 #include <regex>
@@ -8,26 +9,66 @@
 #include <vector>
 #include "parser.hpp"
 
+const std::regex re_hello("HELLO\n");
+const std::regex re_solve("SOLVE (.*)\n");
+
+void send_message(int client_socket, std::string message) {
+    send(client_socket, message.c_str(), message.length(), 0);
+}
+
 // This function will be run in a separate thread for each client
 void client_handler(int client_socket) {
-    char buffer[1024] = {0};
+    bool hello_received = false;
 
-    // Receive a message from the client
-    int valread = read(client_socket, buffer, 1024);
-    std::cout << "Received message from the client: " << buffer << std::endl;
+    while (true) {
+        // Receive a message from the client
+        char buffer[1024] = {0};
+        int valread = read(client_socket, buffer, 1024);
+        if (valread == 0) {
+            break;
+        }
 
-    Parser parser(buffer);
-    auto result = parser.parse();
-    if (result.has_value()) {
-        std::string message = std::to_string(result.value());
-        send(client_socket, message.c_str(), message.length(), 0);
-        std::cout << "Message sent to the client." << std::endl;
-    } else {
-        std::cout << "Error" << std::endl;
+        // Parse the message using regex
+
+        std::string msg = buffer;
+        std::smatch match;
+
+        if (!hello_received) {
+            if (std::regex_match(msg, match, re_hello)) {
+                send_message(client_socket, "HELLO\n");
+                hello_received = true;
+                continue;
+            } else {
+                send_message(client_socket, "BYE\n");
+                break;
+            }
+        }
+
+        if (std::regex_match(msg, match, re_solve)) {
+            Parser parser(match[1].str());
+            auto result = parser.parse();
+            if (result.has_value()) {
+                send_message(client_socket, "RESULT " + std::to_string(result.value()) + "\n");
+            } else {
+                send_message(client_socket, "BYE\n");
+                break;
+            }
+        } else {
+            send_message(client_socket, "BYE\n");
+            break;
+        }
     }
 
     // Close the socket
     close(client_socket);
+}
+
+void signal_handler(int signal) {
+    std::cout << "Server is shutting down..." << std::endl;
+
+    // TODO: Wait for all threads to finish
+
+    exit(0);
 }
 
 int main() {
@@ -64,6 +105,11 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+    struct sigaction sigint_handler;
+    sigint_handler.sa_handler = signal_handler;
+    sigemptyset(&sigint_handler.sa_mask);
+    sigint_handler.sa_flags = 0;
+    sigaction(SIGINT, &sigint_handler, NULL);
     std::cout << "Server is listening for connections on port 8080." << std::endl;
 
     // Accept new connections and start a new thread for each client
