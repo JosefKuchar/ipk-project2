@@ -1,5 +1,30 @@
 #include "parser.hpp"
 
+std::string get_token_name(TokenType token) {
+    switch (token) {
+        case TokenType::LeftParen:
+            return "(";
+        case TokenType::RightParen:
+            return ")";
+        case TokenType::Plus:
+            return "+";
+        case TokenType::Minus:
+            return "-";
+        case TokenType::Multiply:
+            return "*";
+        case TokenType::Divide:
+            return "/";
+        case TokenType::Number:
+            return "Number";
+        case TokenType::Space:
+            return "Space";
+        case TokenType::End:
+            return "End";
+        default:
+            return "Unknown";
+    }
+}
+
 void Parser::lex(std::string str) {
     for (auto& c : str) {
         if (isdigit(c)) {
@@ -34,11 +59,12 @@ void Parser::lex(std::string str) {
                     tokens.push_back(std::make_pair(TokenType::Space, 0));
                     break;
                 default:
-                    std::cout << "Error" << std::endl;
+                    last_error = "Invalid character: " + c;
                     break;
             }
         }
     }
+    tokens.push_back(std::make_pair(TokenType::End, 0));
 }
 
 std::optional<int> Parser::do_operation(TokenType op, std::vector<int> results) {
@@ -57,11 +83,13 @@ std::optional<int> Parser::do_operation(TokenType op, std::vector<int> results) 
                 break;
             case TokenType::Divide:
                 if (results[i] == 0) {
+                    last_error = "Division by zero";
                     return std::nullopt;
                 }
                 result /= results[i];
                 break;
             default:
+                // This should never happen
                 return std::nullopt;
         }
     }
@@ -86,28 +114,26 @@ std::optional<std::pair<TokenType, int>> Parser::get_token() {
 
 bool Parser::check_rule_advance(TokenType type) {
     auto token = get_next();
-    if (token.has_value() && token.value().first == type) {
-        return true;
-    } else {
-        return false;
-    }
+    return token.has_value() && token.value().first == type;
 }
 
 bool Parser::check_rule(TokenType type) {
     auto token = get_token();
-    if (token.has_value() && token.value().first == type) {
-        return true;
-    } else {
-        return false;
-    }
+    return token.has_value() && token.value().first == type;
 }
 
 std::optional<int> Parser::rule_query() {
     std::vector<int> results;
     if (!check_rule_advance(TokenType::LeftParen)) {
+        last_error = "Expected '('";
         return std::nullopt;
     }
-    return rule_subexp();
+    auto result = rule_subexp();
+    if (!check_rule_advance(TokenType::End)) {
+        last_error = "Expected end of input";
+        return std::nullopt;
+    }
+    return result;
 }
 
 std::optional<int> Parser::rule_expr() {
@@ -196,6 +222,7 @@ bool Parser::rule_operator() {
     // Get next token
     auto token = get_next();
     if (!token.has_value()) {
+        last_error = "Expected operator, got: End";
         return false;
     }
     // Check if the token is an operator
@@ -209,6 +236,7 @@ bool Parser::rule_operator() {
         case TokenType::Divide:
             return true;
         default:
+            last_error = "Expected operator, got: " + get_token_name(token.value().first);
             return false;
     }
 }

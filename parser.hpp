@@ -5,9 +5,9 @@
 #include <optional>
 #include <vector>
 
-enum class TokenType { LeftParen, RightParen, Plus, Minus, Multiply, Divide, Number, Space };
+enum class TokenType { LeftParen, RightParen, Plus, Minus, Multiply, Divide, Number, Space, End };
 
-// Query -> ( Op SP Expr SP Expr OptExpr ) .
+// Query -> ( Op SP Expr SP Expr OptExpr ) END .
 // Op -> + .
 // Op -> - .
 // Op -> * .
@@ -37,6 +37,7 @@ class Parser {
     std::optional<std::pair<TokenType, int>> get_token();
 
    public:
+    std::string last_error;
     void lex(std::string str);
     std::optional<int> parse();
     Parser(std::string str);
