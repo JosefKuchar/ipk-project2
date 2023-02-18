@@ -3,14 +3,21 @@
 #include <signal.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <mutex>
 #include <regex>
 #include <thread>
 #include <vector>
 #include "parser.hpp"
 
+// TODO: Should i support multiple commands in one message?
+
 // Regex patterns for parsing messages
 const std::regex re_hello("HELLO\n");
 const std::regex re_solve("SOLVE (.*)\n");
+
+int server_fd;
+std::vector<int> clients;
+std::mutex mutex;
 
 void send_message(int client_socket, std::string message) {
     send(client_socket, message.c_str(), message.length(), 0);
@@ -29,11 +36,8 @@ void client_handler(int client_socket) {
             break;
         }
 
-        // Parse the message using regex
-
         std::string msg = buffer;
         std::smatch match;
-
         if (!hello_received) {
             if (std::regex_match(msg, match, re_hello)) {
                 send_message(client_socket, "HELLO\n");
@@ -59,18 +63,28 @@ void client_handler(int client_socket) {
         }
     }
 
+    mutex.lock();
+    // Remove the client from the list of clients
+    clients.erase(std::remove(clients.begin(), clients.end(), client_socket), clients.end());
+    mutex.unlock();
+
     // Close the socket
     close(client_socket);
 }
 
 void signalhandler(int signum) {
-    std::cout << "Shutting down server" << std::endl;
-    exit(0);
+    std::cout << "\nShutting down server..." << std::endl;
+    // We can't lock the mutex because it could be locked by a client thread
+    for (auto& client : clients) {
+        send_message(client, "BYE\n");
+        close(client);
+    }
+    // Close the server socket
+    close(server_fd);
 }
 
 void TcpServer::run() {
-    std::vector<std::thread> client_threads;
-    int server_fd, new_socket;
+    int new_socket;
     int opt = 1;
     int addrlen = sizeof(args.address);
 
@@ -109,16 +123,13 @@ void TcpServer::run() {
     while (true) {
         if ((new_socket =
                  accept(server_fd, (struct sockaddr*)&args.address, (socklen_t*)&addrlen)) < 0) {
-            perror("Accept failed");
-            exit(EXIT_FAILURE);
+            break;
         }
 
+        mutex.lock();
         std::thread client_thread(client_handler, new_socket);
-        client_threads.push_back(std::move(client_thread));
-    }
-
-    // Join all threads before exiting
-    for (auto& thread : client_threads) {
-        thread.join();
+        clients.push_back(new_socket);
+        client_thread.detach();  // Detach the thread so it will be destroyed when it finishes
+        mutex.unlock();
     }
 }
