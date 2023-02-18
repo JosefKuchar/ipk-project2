@@ -1,5 +1,6 @@
 #include "tcp-server.hpp"
 #include <arpa/inet.h>
+#include <signal.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <regex>
@@ -17,6 +18,7 @@ void send_message(int client_socket, std::string message) {
 
 // This function will be run in a separate thread for each client
 void client_handler(int client_socket) {
+    Parser parser;
     bool hello_received = false;
 
     while (true) {
@@ -44,8 +46,7 @@ void client_handler(int client_socket) {
         }
 
         if (std::regex_match(msg, match, re_solve)) {
-            Parser parser(match[1].str());
-            auto result = parser.parse();
+            auto result = parser.parse(match[1].str());
             if (result.has_value()) {
                 send_message(client_socket, "RESULT " + std::to_string(result.value()) + "\n");
             } else {
@@ -60,6 +61,11 @@ void client_handler(int client_socket) {
 
     // Close the socket
     close(client_socket);
+}
+
+void signalhandler(int signum) {
+    std::cout << "Shutting down server" << std::endl;
+    exit(0);
 }
 
 void TcpServer::run() {
@@ -92,6 +98,12 @@ void TcpServer::run() {
     }
 
     std::cout << "Listening on port " << ntohs(args.address.sin_port) << std::endl;
+
+    struct sigaction a;
+    a.sa_handler = signalhandler;
+    a.sa_flags = 0;
+    sigemptyset(&a.sa_mask);
+    sigaction(SIGINT, &a, NULL);
 
     // Accept new connections and start a new thread for each client
     while (true) {

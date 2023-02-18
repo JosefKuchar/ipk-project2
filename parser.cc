@@ -25,7 +25,8 @@ std::string get_token_name(TokenType token) {
     }
 }
 
-void Parser::lex(std::string str) {
+bool Parser::tokenize(std::string str) {
+    tokens.clear();
     for (auto& c : str) {
         if (isdigit(c)) {
             buffer += c;
@@ -59,12 +60,12 @@ void Parser::lex(std::string str) {
                     tokens.push_back(std::make_pair(TokenType::Space, 0));
                     break;
                 default:
-                    last_error = "Invalid character: " + c;
-                    break;
+                    return false;
             }
         }
     }
     tokens.push_back(std::make_pair(TokenType::End, 0));
+    return true;
 }
 
 std::optional<int> Parser::do_operation(TokenType op, std::vector<int> results) {
@@ -83,7 +84,6 @@ std::optional<int> Parser::do_operation(TokenType op, std::vector<int> results) 
                 break;
             case TokenType::Divide:
                 if (results[i] == 0) {
-                    last_error = "Division by zero";
                     return std::nullopt;
                 }
                 result /= results[i];
@@ -125,12 +125,10 @@ bool Parser::check_rule(TokenType type) {
 std::optional<int> Parser::rule_query() {
     std::vector<int> results;
     if (!check_rule_advance(TokenType::LeftParen)) {
-        last_error = "Expected '('";
         return std::nullopt;
     }
     auto result = rule_subexp();
     if (!check_rule_advance(TokenType::End)) {
-        last_error = "Expected end of input";
         return std::nullopt;
     }
     return result;
@@ -222,7 +220,6 @@ bool Parser::rule_operator() {
     // Get next token
     auto token = get_next();
     if (!token.has_value()) {
-        last_error = "Expected operator, got: End";
         return false;
     }
     // Check if the token is an operator
@@ -236,19 +233,19 @@ bool Parser::rule_operator() {
         case TokenType::Divide:
             return true;
         default:
-            last_error = "Expected operator, got: " + get_token_name(token.value().first);
             return false;
     }
 }
 
-std::optional<int> Parser::parse() {
+std::optional<int> Parser::parse(std::string query) {
+    // Tokenize query
+    if (!tokenize(query)) {
+        return std::nullopt;
+    }
     // Reset iterator
     it = tokens.begin();
     // Parse query
     return rule_query();
 }
 
-Parser::Parser(std::string str) {
-    // Tokenize string
-    lex(str);
-}
+Parser::Parser() {}

@@ -28,6 +28,7 @@ void send_message(int fd, struct sockaddr_in* addr, Status status, std::string m
 }
 
 void UdpServer::run() {
+    Parser parser;
     int server_fd, new_socket;
     int opt = 1;
     socklen_t len;
@@ -72,13 +73,12 @@ void UdpServer::run() {
         }
 
         // Parse message and send response
-        std::string message(buffer + 2, n - 2);
-        Parser parser(message);
-        auto result = parser.parse();
+        std::string message(buffer + 2, (int)buffer[1]);
+        auto result = parser.parse(message);
         if (result.has_value()) {
             send_message(server_fd, &client_addr, Status::Ok, std::to_string(result.value()));
         } else {
-            send_message(server_fd, &client_addr, Status::Error, "Error parsing expression");
+            send_message(server_fd, &client_addr, Status::Error, "Error evaluating expression");
         }
     }
 

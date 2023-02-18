@@ -33,14 +33,14 @@ class Parser {
     bool rule_operator();
     bool check_rule(TokenType type);
     bool check_rule_advance(TokenType type);
+    bool tokenize(std::string str);
+
     std::optional<std::pair<TokenType, int>> get_next();
     std::optional<std::pair<TokenType, int>> get_token();
 
    public:
-    std::string last_error;
-    void lex(std::string str);
-    std::optional<int> parse();
-    Parser(std::string str);
+    std::optional<int> parse(std::string str);
+    Parser();
 };
 
 #endif  // __PARSER_HPP__
