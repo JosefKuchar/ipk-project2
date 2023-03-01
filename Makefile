@@ -1,3 +1,6 @@
+CXXFLAGS = -std=c++20 -Wall -Wextra -Werror -pedantic -O2
+CPPFLAGS = -std=c++20 -Wall -Wextra -pedantic -O2
+
 # Get all .c files
 SRCS = $(wildcard *.cc)
 # Get corresponding .o files
