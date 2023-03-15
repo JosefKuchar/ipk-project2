@@ -12,7 +12,7 @@ DEPS := $(SRCS:%.cc=%.d)
 .PHONY: run clean zip test pdf examples
 
 # Main target
-ipkcpc: $(OBJS)
+ipkcpd: $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 # Dependecies
@@ -22,10 +22,10 @@ $(DEPS):
 include $(wildcard $(DEPS))
 
 clean:
-	rm -f *.o *.d ipkcpc
+	rm -f *.o *.d ipkcpd
 
-run: ipkcpc
-	./ipkcpc -h 127.0.0.1 -p 1234 -m tcp
+run: ipkcpd
+	./ipkcpd -h 127.0.0.1 -p 1234 -m tcp
 
-run_udp: ipkcpc
-	./ipkcpc -h 127.0.0.1 -p 1234 -m udp
+run_udp: ipkcpd
+	./ipkcpd -h 127.0.0.1 -p 1234 -m udp

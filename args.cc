@@ -21,7 +21,7 @@ Args::Args(int argc, char** argv) {
                 mode = optarg;
                 break;
             default:  // Invalid option
-                std::cout << "Usage: ipkcpc -h <host> -p <port> -m <mode>" << std::endl;
+                std::cout << "Usage: ipkcpd -h <host> -p <port> -m <mode>" << std::endl;
                 exit(0);
         }
     }
