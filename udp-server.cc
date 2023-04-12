@@ -98,13 +98,13 @@ void UdpServer::run() {
         }
 
         // Check if the length is valid
-        if (n - 2 < (int)buffer[1] || (int)buffer[1] == 0) {
+        if (n - 2 < (uint8_t)buffer[1] || (uint8_t)buffer[1] == 0) {
             send_message(&client_addr, Status::Error, "Invalid length");
             continue;
         }
 
         // Parse message and send response
-        std::string message(buffer + 2, (int)buffer[1]);
+        std::string message(buffer + 2, (uint8_t)buffer[1]);
         auto result = parser.parse(message);
         if (result.has_value()) {
             send_message(&client_addr, Status::Ok, std::to_string(result.value()));
