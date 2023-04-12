@@ -1,3 +1,4 @@
 ipkcpd
 *.o
 *.d
+.vscode/
