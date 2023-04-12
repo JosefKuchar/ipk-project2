@@ -73,7 +73,6 @@ void client_handler(int client_socket) {
 }
 
 void signalhandler(int signum) {
-    std::cout << "\nShutting down server..." << std::endl;
     // We can't lock the mutex because it could be locked by a client thread
     for (auto& client : clients) {
         send_message(client, "BYE\n");
@@ -110,8 +109,6 @@ void TcpServer::run() {
         perror("Listen failed");
         exit(EXIT_FAILURE);
     }
-
-    std::cout << "Listening on port " << ntohs(args.address.sin_port) << std::endl;
 
     struct sigaction a;
     a.sa_handler = signalhandler;

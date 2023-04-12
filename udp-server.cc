@@ -53,8 +53,6 @@ void UdpServer::run() {
         exit(EXIT_FAILURE);
     }
 
-    std::cout << "Listening on port " << ntohs(args.address.sin_port) << std::endl;
-
     while (true) {
         len = sizeof(client_addr);
         ssize_t n =
