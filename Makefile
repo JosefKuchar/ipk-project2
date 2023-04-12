@@ -1,5 +1,4 @@
-CXXFLAGS = -std=c++20 -Wall -Wextra -Werror -pedantic -O2
-CPPFLAGS = -std=c++20 -Wall -Wextra -pedantic -O2
+CPPFLAGS = -std=c++20 -O2
 
 # Get all .c files
 SRCS = $(wildcard *.cc)
@@ -9,7 +8,7 @@ OBJS := $(SRCS:%.cc=%.o)
 DEPS := $(SRCS:%.cc=%.d)
 
 # These will run every time (not just when the files are newer)
-.PHONY: run clean zip test pdf examples
+.PHONY: run_tcp run_udp clean zip test
 
 # Main target
 ipkcpd: $(OBJS)
@@ -24,8 +23,11 @@ include $(wildcard $(DEPS))
 clean:
 	rm -f *.o *.d ipkcpd
 
-run: ipkcpd
+run_tcp: ipkcpd
 	./ipkcpd -h 127.0.0.1 -p 1234 -m tcp
 
 run_udp: ipkcpd
-	./ipkcpd -h 127.0.0.1 -p 1234 -m udp
+	./ipkcpd -h 127.0.0.1 -p 1235 -m udp
+
+zip: clean
+	zip -r xkucha28.zip *
