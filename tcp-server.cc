@@ -9,21 +9,33 @@
 #include <vector>
 #include "parser.hpp"
 
-// TODO: Should i support multiple commands in one message?
+// TODO: Support multiple commands in one "message"
 
 // Regex patterns for parsing messages
 const std::regex re_hello("HELLO\n");
 const std::regex re_solve("SOLVE (.*)\n");
 
-int server_fd;
+// Server socket
+int sock_tcp;
+// List of client sockets
 std::vector<int> clients;
+// Mutex for accessing the list of clients
 std::mutex mutex;
 
+/**
+ * Send helper function
+ * @param client_socket Socket of the client
+ * @param message Message to send
+ */
 void send_message(int client_socket, std::string message) {
     send(client_socket, message.c_str(), message.length(), 0);
 }
 
-// This function will be run in a separate thread for each client
+/**
+ * Client handler
+ * This function will be run in a separate thread for each client
+ * @param client_socket Socket of the client
+ */
 void client_handler(int client_socket) {
     Parser parser;
     bool hello_received = false;
@@ -72,14 +84,18 @@ void client_handler(int client_socket) {
     close(client_socket);
 }
 
-void signalhandler(int signum) {
+/**
+ * TCP signal handler
+ */
+void tcp_signalhandler(int signum) {
     // We can't lock the mutex because it could be locked by a client thread
+    // Send a BYE message to all clients
     for (auto& client : clients) {
         send_message(client, "BYE\n");
         close(client);
     }
     // Close the server socket
-    close(server_fd);
+    close(sock_tcp);
 }
 
 void TcpServer::run() {
@@ -87,46 +103,49 @@ void TcpServer::run() {
     int opt = 1;
     int addrlen = sizeof(args.address);
 
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
-        perror("Socket failed");
+    if ((sock_tcp = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+        perror("socket");
         exit(EXIT_FAILURE);
     }
 
     // Attach socket to the port
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
+    if (setsockopt(sock_tcp, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
         perror("setsockopt");
         exit(EXIT_FAILURE);
     }
 
     // Bind socket to the address and port
-    if (bind(server_fd, (struct sockaddr*)&args.address, addrlen) < 0) {
-        perror("Bind failed");
+    if (bind(sock_tcp, (struct sockaddr*)&args.address, addrlen) < 0) {
+        perror("bind");
         exit(EXIT_FAILURE);
     }
 
     // Start listening for connections
-    if (listen(server_fd, 3) < 0) {
-        perror("Listen failed");
+    if (listen(sock_tcp, 3) < 0) {
+        perror("listen");
         exit(EXIT_FAILURE);
     }
 
+    // Set up the signal handler
     struct sigaction a;
-    a.sa_handler = signalhandler;
+    a.sa_handler = tcp_signalhandler;
     a.sa_flags = 0;
     sigemptyset(&a.sa_mask);
     sigaction(SIGINT, &a, NULL);
 
     // Accept new connections and start a new thread for each client
     while (true) {
-        if ((new_socket =
-                 accept(server_fd, (struct sockaddr*)&args.address, (socklen_t*)&addrlen)) < 0) {
+        // Wait for new connections
+        if ((new_socket = accept(sock_tcp, (struct sockaddr*)&args.address, (socklen_t*)&addrlen)) <
+            0) {
             break;
         }
-
+        // Add the client to the list of clients
         mutex.lock();
         std::thread client_thread(client_handler, new_socket);
         clients.push_back(new_socket);
-        client_thread.detach();  // Detach the thread so it will be destroyed when it finishes
+        // Detach the thread so it will be destroyed when it finishes
+        client_thread.detach();
         mutex.unlock();
     }
 }

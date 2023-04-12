@@ -39,6 +39,9 @@ class Parser {
     std::optional<std::pair<TokenType, int>> get_token();
 
    public:
+    /**
+     * Parse a query string and return the result
+     */
     std::optional<int> parse(std::string str);
     Parser();
 };

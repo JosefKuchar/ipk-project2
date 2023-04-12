@@ -1,42 +1,25 @@
 #include "parser.hpp"
 
-std::string get_token_name(TokenType token) {
-    switch (token) {
-        case TokenType::LeftParen:
-            return "(";
-        case TokenType::RightParen:
-            return ")";
-        case TokenType::Plus:
-            return "+";
-        case TokenType::Minus:
-            return "-";
-        case TokenType::Multiply:
-            return "*";
-        case TokenType::Divide:
-            return "/";
-        case TokenType::Number:
-            return "Number";
-        case TokenType::Space:
-            return "Space";
-        case TokenType::End:
-            return "End";
-        default:
-            return "Unknown";
-    }
-}
-
+/**
+ * Tokenize the input string
+ * @param str The input string
+ */
 bool Parser::tokenize(std::string str) {
+    // Remove previous tokens
     tokens.clear();
+    // Iterate over characters in the string
     for (auto& c : str) {
+        // If the character is a digit, add it to the buffer
         if (isdigit(c)) {
             buffer += c;
             continue;
         } else {
+            // This means that number is finished and we can add it to the list of tokens
             if (!buffer.empty()) {
                 tokens.push_back(std::make_pair(TokenType::Number, std::stoi(buffer)));
                 buffer.clear();
             }
-
+            // Other tokens
             switch (c) {
                 case '(':
                     tokens.push_back(std::make_pair(TokenType::LeftParen, 0));
@@ -59,34 +42,43 @@ bool Parser::tokenize(std::string str) {
                 case ' ':
                     tokens.push_back(std::make_pair(TokenType::Space, 0));
                     break;
+                // Invalid character
                 default:
                     return false;
             }
         }
     }
+    // End token
     tokens.push_back(std::make_pair(TokenType::End, 0));
     return true;
 }
 
-std::optional<int> Parser::do_operation(TokenType op, std::vector<int> results) {
-    int result = results[0];
+/**
+ * Perform given operation on operands
+ * @param op The operation to perform
+ * @param operands Operands
+ * @return The result of the operation (or nullopt if operation is invalid)
+ */
+std::optional<int> Parser::do_operation(TokenType op, std::vector<int> operands) {
+    int result = operands[0];
 
-    for (int i = 1; i < results.size(); i++) {
+    for (int i = 1; i < operands.size(); i++) {
         switch (op) {
             case TokenType::Plus:
-                result += results[i];
+                result += operands[i];
                 break;
             case TokenType::Minus:
-                result -= results[i];
+                result -= operands[i];
                 break;
             case TokenType::Multiply:
-                result *= results[i];
+                result *= operands[i];
                 break;
             case TokenType::Divide:
-                if (results[i] == 0) {
+                // Division by zero
+                if (operands[i] == 0) {
                     return std::nullopt;
                 }
-                result /= results[i];
+                result /= operands[i];
                 break;
             default:
                 // This should never happen
@@ -96,6 +88,9 @@ std::optional<int> Parser::do_operation(TokenType op, std::vector<int> results) 
     return result;
 }
 
+/**
+ * Get current token and increment the iterator
+ */
 std::optional<std::pair<TokenType, int>> Parser::get_next() {
     if (it == tokens.end()) {
         return std::nullopt;
@@ -104,41 +99,51 @@ std::optional<std::pair<TokenType, int>> Parser::get_next() {
     }
 }
 
-std::optional<std::pair<TokenType, int>> Parser::get_token() {
-    if (it == tokens.end()) {
-        return std::nullopt;
-    } else {
-        return *it;
-    }
-}
-
+/**
+ * Check current token and increment the iterator
+ */
 bool Parser::check_rule_advance(TokenType type) {
     auto token = get_next();
     return token.has_value() && token.value().first == type;
 }
 
+/**
+ * Check current token
+ */
 bool Parser::check_rule(TokenType type) {
-    auto token = get_token();
-    return token.has_value() && token.value().first == type;
+    if (it == tokens.end()) {
+        return false;
+    } else {
+        return it->first == type;
+    }
 }
 
+/**
+ * Query rule
+ */
 std::optional<int> Parser::rule_query() {
-    std::vector<int> results;
+    // Every query has to start with a left parenthesis
     if (!check_rule_advance(TokenType::LeftParen)) {
         return std::nullopt;
     }
     auto result = rule_subexp();
+    // Expresion has to properly end
     if (!check_rule_advance(TokenType::End)) {
         return std::nullopt;
     }
     return result;
 }
 
+/**
+ * Expression rule
+ */
 std::optional<int> Parser::rule_expr() {
     // Check if the next token is a left parenthesis
+    // That means that we have a sub-expression
     if (check_rule(TokenType::LeftParen)) {
         it++;
         return rule_subexp();
+        // Otherwise we have a number
     } else if (check_rule(TokenType::Number)) {
         auto token = get_next();
         if (token.has_value()) {
@@ -146,11 +151,15 @@ std::optional<int> Parser::rule_expr() {
         } else {
             return std::nullopt;
         }
+        // Invalid token
     } else {
         return std::nullopt;
     }
 }
 
+/**
+ * Shared part between query and expression rule
+ */
 std::optional<int> Parser::rule_subexp() {
     // Results from all sub-expressions
     std::vector<int> results;
@@ -192,6 +201,9 @@ std::optional<int> Parser::rule_subexp() {
     return do_operation(op, results);
 }
 
+/**
+ * Optional expression rule
+ */
 std::optional<std::vector<int>> Parser::rule_optexpr() {
     // Results from other optional expressions
     std::vector<int> results;
@@ -216,6 +228,9 @@ std::optional<std::vector<int>> Parser::rule_optexpr() {
     return results;
 }
 
+/**
+ * Operator rule
+ */
 bool Parser::rule_operator() {
     // Get next token
     auto token = get_next();
