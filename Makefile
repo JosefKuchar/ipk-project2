@@ -31,3 +31,9 @@ run_udp: ipkcpd
 
 zip: clean
 	zip -r xkucha28.zip *
+
+test: ipkcpd
+	./ipkcpd -h 127.0.0.1 -p 1234 -m tcp & \
+	./ipkcpd -h 127.0.0.1 -p 1235 -m udp & \
+	python3 test.py -v; \
+	pkill ipkcpd
