@@ -4,26 +4,39 @@
 #include <charconv>
 #include <iostream>
 
+void print_usage() {
+    std::cout << "Usage: ipkcpd -h <host> -p <port> -m <mode>" << std::endl;
+    exit(0);
+}
+
 Args::Args(int argc, char** argv) {
     // Parse arguments using getopt
     int option;
     int parsed_port;
+    bool host_set = false, port_set = false, mode_set = false;
     std::string host, port;
     while ((option = getopt(argc, argv, "h:p:m:")) != -1) {
         switch (option) {
             case 'h':
                 host = optarg;
+                host_set = true;
                 break;
             case 'p':
                 port = optarg;
+                port_set = true;
                 break;
             case 'm':
                 mode = optarg;
+                mode_set = true;
                 break;
             default:  // Invalid option
-                std::cout << "Usage: ipkcpd -h <host> -p <port> -m <mode>" << std::endl;
-                exit(0);
+                print_usage();
         }
+    }
+
+    // Check if all arguments are set
+    if (!host_set || !port_set || !mode_set) {
+        print_usage();
     }
 
     // Check if mode is valid
