@@ -9,11 +9,9 @@
 #include <vector>
 #include "parser.hpp"
 
-// TODO: Support multiple commands in one "message"
-
 // Regex patterns for parsing messages
-const std::regex re_hello("HELLO\n");
-const std::regex re_solve("SOLVE (.*)\n");
+const std::regex re_hello("^HELLO\n");
+const std::regex re_solve("^SOLVE (.*)\n");
 
 // Server socket
 int sock_tcp;
@@ -39,37 +37,60 @@ void send_message(int client_socket, std::string message) {
 void client_handler(int client_socket) {
     Parser parser;
     bool hello_received = false;
+    std::string msg;
 
     while (true) {
-        // Receive a message from the client
-        char buffer[1024] = {0};
-        int valread = read(client_socket, buffer, 1024);
-        if (valread == 0) {
-            break;
+        // Check if the message contains a newline
+        std::size_t pos = msg.find('\n');
+        if (pos == std::string::npos) {
+            // No newline, continue receiving
+            // Receive a message from the client
+            char buffer[1024] = {0};
+            int valread = read(client_socket, buffer, 1023);
+            if (valread == 0) {
+                // Client disconnected
+                break;
+            }
+            // Append the buffer to the message
+            msg += buffer;
+            continue;
         }
 
-        std::string msg = buffer;
         std::smatch match;
+        // If we haven't received a HELLO message yet, check if the message is a HELLO message
         if (!hello_received) {
-            if (std::regex_match(msg, match, re_hello)) {
+            if (std::regex_search(msg, match, re_hello)) {
+                // Remove HELLO from the message
+                msg.erase(0, pos + 1);
+                // Reply with a HELLO message
                 send_message(client_socket, "HELLO\n");
                 hello_received = true;
                 continue;
             } else {
+                // The client didn't send a HELLO message, disconnect
                 send_message(client_socket, "BYE\n");
                 break;
             }
         }
-
-        if (std::regex_match(msg, match, re_solve)) {
+        /**
+         * Only SOLVE messages are allowed after the HELLO message
+         * or BYE messages, but we don't need to check for that,
+         * because any non-SOLVE message will cause the client to disconnect
+         */
+        if (std::regex_search(msg, match, re_solve)) {
             auto result = parser.parse(match[1].str());
             if (result.has_value()) {
+                // Remove SOLVE from the message
+                msg.erase(0, pos + 1);
+                // Reply with the result
                 send_message(client_socket, "RESULT " + std::to_string(result.value()) + "\n");
             } else {
+                // Invalid expression, disconnect
                 send_message(client_socket, "BYE\n");
                 break;
             }
         } else {
+            // BYE or invalid message, disconnect
             send_message(client_socket, "BYE\n");
             break;
         }
