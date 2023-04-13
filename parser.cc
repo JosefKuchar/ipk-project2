@@ -131,7 +131,12 @@ std::optional<int> Parser::rule_query() {
     if (!check_rule_advance(TokenType::End)) {
         return std::nullopt;
     }
-    return result;
+    // Final result has to be a positive number
+    if (result.has_value() && result.value() >= 0) {
+        return result;
+    } else {
+        return std::nullopt;
+    }
 }
 
 /**

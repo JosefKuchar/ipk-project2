@@ -106,6 +106,11 @@ class TestTCP(unittest.TestCase):
         self.assertEqual(self.send_message(
             b"HELLO\nSOLVE (+ 1a2 3)\n"), b"HELLO\nBYE\n")
 
+    def test_negative_result(self):
+        """HELLO SOLVE (- 1 2)"""
+        self.assertEqual(self.send_message(
+            b"HELLO\nSOLVE (- 1 2)\n"), b"HELLO\nBYE\n")
+
 
 class TestUDP(unittest.TestCase):
     """UDP tests"""
@@ -140,6 +145,11 @@ class TestUDP(unittest.TestCase):
     def test_invalid(self):
         """ABC"""
         self.assertEqual(self.send_message(b"\0\3ABC"),
+                         b'\x01\x01\x1bError evaluating expression')
+
+    def test_negative_result(self):
+        """(- 1 2)"""
+        self.assertEqual(self.send_message(b"\0\7(- 1 2)"),
                          b'\x01\x01\x1bError evaluating expression')
 
 
