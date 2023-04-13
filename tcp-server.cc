@@ -117,6 +117,7 @@ void tcp_signalhandler(int signum) {
     }
     // Close the server socket
     close(sock_tcp);
+    exit(EXIT_SUCCESS);
 }
 
 void TcpServer::run() {

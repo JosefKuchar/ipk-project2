@@ -31,6 +31,7 @@ int sock_udp;
 void udp_signalhandler(int signum) {
     // Close the server socket
     close(sock_udp);
+    exit(EXIT_SUCCESS);
 }
 
 /**
