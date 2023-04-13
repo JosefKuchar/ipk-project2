@@ -67,7 +67,7 @@ class TestTCP(unittest.TestCase):
             b"HELLO\nSOLVE (/ 10 0)\n"), b"HELLO\nBYE\n")
 
     def test_large_solve(self):
-        """HELLO SOLVE (+(1 1 ... 1)) BYE"""
+        """HELLO SOLVE (+ (1 1 ... 1)) BYE"""
         self.assertEqual(self.send_message(
             b"HELLO\nSOLVE (+" + (b" 1" * 1000) + b")\nBYE\n"), b"HELLO\nRESULT 1000\nBYE\n")
 
