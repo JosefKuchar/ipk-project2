@@ -79,7 +79,8 @@ void client_handler(int client_socket) {
          */
         if (std::regex_search(msg, match, re_solve)) {
             auto result = parser.parse(match[1].str());
-            if (result.has_value()) {
+            // TCP mode doesn't support negative results
+            if (result.has_value() && result.value() >= 0) {
                 // Remove SOLVE from the message
                 msg.erase(0, pos + 1);
                 // Reply with the result

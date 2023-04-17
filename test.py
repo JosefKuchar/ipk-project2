@@ -150,7 +150,7 @@ class TestUDP(unittest.TestCase):
     def test_negative_result(self):
         """(- 1 2)"""
         self.assertEqual(self.send_message(b"\0\7(- 1 2)"),
-                         b'\x01\x01\x1bError evaluating expression')
+                         b'\x01\x00\x02-1')
 
 
 if __name__ == "__main__":

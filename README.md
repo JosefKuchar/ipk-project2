@@ -110,7 +110,7 @@ Test outputs:
 | `b"\0\255a"`     | `b'\x01\x01\x0eInvalid length'`              | `b'\x01\x01\x0eInvalid length'`              |
 | `b"\0\7(+ 1 2)"` | `b'\x01\x00\x013'`                           | `b'\x01\x00\x013'`                           |
 | `b"\0\3ABC"`     | `b'\x01\x01\x1bError evaluating expression'` | `b'\x01\x01\x1bError evaluating expression'` |
-| `b"\0\7(- 1 2)"` | `b'\x01\x01\x1bError evaluating expression'` | `b'\x01\x01\x1bError evaluating expression'` |
+| `b"\0\7(- 1 2)"` | `b'\x01\x00\x02-1'`                          | `b'\x01\x00\x02-1'`                          |
 
 ### Test outputs
 
