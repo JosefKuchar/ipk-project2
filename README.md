@@ -1,5 +1,13 @@
 # IPK Project 2: IPK Server for Remote Calculator
 
+## Hodnocení
+
+16.5 / 20
+
+Body primárně stržené na základě dokumentace (nedostatečných citací a podobně). Funkcionalita byla správná. Slovní hodnocení bylo řečeno pouze na obhajobě.
+
+## Původní README
+
 This README is the main documentation for this project.
 
 ## Usage
